@@ -1,0 +1,21 @@
+[package]
+name = "erc20-rs"
+version = "0.1.0"
+authors = ["Chojan Shang <psiace@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+path = "src/erc20.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+ewasm_api = { path = "../ewasm-api-rs", default-features = false, features = ["std", "qimalloc"] }
+tiny-keccak = { version = "2.0.2", features = ["sha3"] }
+uint = "0.9.0"
+
+[profile.release]
+incremental = false
+panic = "abort"
+lto = true
+opt-level = "z"

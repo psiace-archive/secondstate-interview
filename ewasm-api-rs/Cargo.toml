@@ -1,0 +1,20 @@
+[package]
+name = "ewasm_api"
+version = "0.11.0"
+authors = ["Alex Beregszaszi <alex@rtfs.hu>", "Jake Lang <jak3lang@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/ewasm/ewasm-rust-api"
+description = "ewasm API for Rust"
+edition = "2018"
+
+[dependencies]
+cfg-if = "0.1.7"
+wee_alloc = { version = "0.4.4", optional = true }
+qimalloc = { version = "0.1", optional = true }
+
+[features]
+default = ["std", "wee_alloc"]
+std = []
+debug = []
+experimental = []
+eth2 = []
