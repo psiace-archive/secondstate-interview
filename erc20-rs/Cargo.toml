@@ -6,13 +6,12 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-path = "src/erc20.rs"
+path = "src/token.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
 ewasm_api = { path = "../ewasm-api-rs", default-features = false, features = ["std", "qimalloc"] }
 tiny-keccak = { version = "2.0.2", features = ["sha3"] }
-uint = "0.9.0"
 
 [profile.release]
 incremental = false

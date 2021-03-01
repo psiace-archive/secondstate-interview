@@ -1,107 +1,114 @@
+use crate::utils::*;
 use ewasm_api::types::*;
-use uint::construct_uint;
 
-construct_uint! {
-    pub struct U256(32);
+pub fn do_transfer(recipient: Address, value: StorageValue) {
+    let sender = ewasm_api::caller();
+    let sender_balance = get_balance(&sender);
+
+    let recipient_balance = get_balance(&recipient);
+
+    let sb_bytes: [u8; 8] = copy_into_array(&sender_balance.bytes[24..32]);
+    let sb_u64 = u64::from_be_bytes(sb_bytes);
+
+    let val_bytes: [u8; 8] = copy_into_array(&value.bytes[24..32]);
+    let val_u64 = u64::from_be_bytes(val_bytes);
+
+    let new_sb_u64 = sb_u64 - val_u64;
+
+    let new_sb_bytes: [u8; 8] = new_sb_u64.to_be_bytes();
+    let sb_value = copy_into_storage_value(&new_sb_bytes[0..8]);
+
+    let rc_bytes: [u8; 8] = copy_into_array(&recipient_balance.bytes[24..32]);
+    let rc_u64 = u64::from_be_bytes(rc_bytes);
+
+    let new_rc_u64 = rc_u64 + val_u64;
+
+    let new_rc_bytes: [u8; 8] = new_rc_u64.to_be_bytes();
+    let rc_value = copy_into_storage_value(&new_rc_bytes[0..8]);
+
+    set_balance(&sender, &sb_value);
+    set_balance(&recipient, &rc_value);
 }
 
-#[no_mangle]
-pub fn main() {
-    // 0x9993021a do_balance() ABI signature
-    let do_balance_signature: [u8; 4] = [153, 147, 2, 26];
+pub fn do_balance(account: Address) {
+    let balance = get_balance(&account);
 
-    // 0x5d359fbd do_transfer() ABI signature
-    let do_transfer_signature: [u8; 4] = [93, 53, 159, 189];
+    if balance.bytes != StorageValue::default().bytes {
+        ewasm_api::finish_data(&balance.bytes);
+    }
+}
 
-    let data_size = ewasm_api::calldata_size();
-    let input_data = ewasm_api::calldata_acquire();
+pub fn name() {
+    let token_name = "ERC20TokenDemo".to_string().into_bytes();
+    ewasm_api::finish_data(&token_name);
+}
 
-    if data_size < 4 {
+pub fn symbol() {
+    let symbol = "ETD".to_string().into_bytes();
+    ewasm_api::finish_data(&symbol);
+}
+
+pub fn decimals() {
+    let decimals = 0_u64.to_be_bytes();
+    ewasm_api::finish_data(&decimals);
+}
+
+pub fn total_supply() {
+    let total_supply = 100000000_u64.to_be_bytes();
+    ewasm_api::finish_data(&total_supply);
+}
+
+pub fn approve(spender: Address, value: StorageValue) {
+    let sender = ewasm_api::caller();
+
+    set_allowance(&sender, &spender, &value);
+}
+
+pub fn allowance(owner: Address, spender: Address) {
+    let allowance_value = get_allowance(&owner, &spender);
+
+    ewasm_api::finish_data(&allowance_value.bytes);
+}
+
+pub fn transfer_from(owner: Address, recipient: Address, value: u64) {
+    let sender = ewasm_api::caller();
+    let owner_balance = get_balance(&owner);
+
+    let ob_bytes: [u8; 8] = copy_into_array(&owner_balance.bytes[24..32]);
+    let mut owner_balance = u64::from_be_bytes(ob_bytes);
+
+    if owner_balance < value {
         ewasm_api::revert();
     }
 
-    let function_selector = input_data[0..4].to_vec();
+    let allowed_value = get_allowance(&owner, &sender);
 
-    if function_selector == do_balance_signature {
-        if data_size != 24 {
-            ewasm_api::revert();
-        }
+    let a_bytes: [u8; 8] = copy_into_array(&allowed_value.bytes[24..32]);
+    let mut allowed = u64::from_be_bytes(a_bytes);
 
-        let address_data = input_data[4..].to_vec();
-        let mut address = Address::default();
-        address.bytes.copy_from_slice(&address_data[0..20]);
-
-        let _test = ewasm_api::caller();
-        let mut storage_key = StorageKey::default();
-
-        storage_key.bytes[12..].copy_from_slice(&address.bytes[0..20]);
-
-        let balance = ewasm_api::storage_load(&storage_key);
-
-        // checks the balance is not 0
-        if balance.bytes != StorageValue::default().bytes {
-            ewasm_api::finish_data(&balance.bytes);
-        }
+    if value > allowed {
+        ewasm_api::revert();
     }
 
-    if function_selector == do_transfer_signature {
-        if input_data.len() != 32 {
-            ewasm_api::revert();
-        }
+    let recipient_balance = get_balance(&recipient);
 
-        // Get Sender
-        let sender = ewasm_api::caller();
-        let mut sender_key = StorageKey::default();
+    let rb_bytes: [u8; 8] = copy_into_array(&recipient_balance.bytes[24..32]);
+    let mut recipient_balance = u64::from_be_bytes(rb_bytes);
 
-        sender_key.bytes[12..].copy_from_slice(&sender.bytes[0..20]);
+    owner_balance -= value;
+    recipient_balance += value;
+    allowed -= value;
 
-        // Get Recipient
-        let recipient_data = input_data[4..24].to_vec();
-        let mut recipient_key = StorageKey::default();
+    let owner_balance_bytes: [u8; 8] = owner_balance.to_be_bytes();
+    let stv_owner_balance = copy_into_storage_value(&owner_balance_bytes[0..8]);
 
-        recipient_key.bytes[12..].copy_from_slice(&recipient_data[..]);
+    let recipient_balance_bytes: [u8; 8] = recipient_balance.to_be_bytes();
+    let stv_recipient_balance = copy_into_storage_value(&recipient_balance_bytes[0..8]);
 
-        // Get Value
-        let value_data = input_data[24..].to_vec();
-        let mut value = StorageValue::default();
-        let value_len = value_data.len();
-        let start = 32 - value_len;
+    let allowed_bytes: [u8; 8] = allowed.to_be_bytes();
+    let stv_allowed = copy_into_storage_value(&allowed_bytes[0..8]);
 
-        for i in start..(value_len + start) {
-            value.bytes[i] = value_data[i - start];
-        }
-
-        // Get Sender Balance
-        let sender_balance = ewasm_api::storage_load(&sender_key);
-
-        // Get Recipient Balance
-        let recipient_balance = ewasm_api::storage_load(&recipient_key);
-
-        // Substract sender balance
-        let sb_u256 = U256::from_big_endian(&sender_balance.bytes[0..32]);
-        let val_u256 = U256::from_big_endian(&value.bytes[0..32]);
-
-        let new_sb_u256 = sb_u256 - val_u256;
-
-        let mut sb_value = StorageValue::default();
-        let mut new_sb_bytes: [u8; 32] = Default::default();
-        new_sb_u256.to_big_endian(&mut new_sb_bytes);
-
-        sb_value.bytes.copy_from_slice(&new_sb_bytes[0..32]);
-
-        // Adds recipient balance
-        let rc_u256 = U256::from_big_endian(&recipient_balance.bytes[0..32]);
-
-        let new_rc_u256 = rc_u256 + val_u256;
-
-        let mut rc_value = StorageValue::default();
-        let mut new_rc_bytes: [u8; 32] = Default::default();
-        new_rc_u256.to_big_endian(&mut new_rc_bytes);
-
-        rc_value.bytes.copy_from_slice(&new_rc_bytes[0..32]);
-
-        ewasm_api::storage_store(&sender_key, &sb_value);
-        ewasm_api::storage_store(&recipient_key, &rc_value);
-    }
-    return;
+    set_balance(&owner, &stv_owner_balance);
+    set_balance(&recipient, &stv_recipient_balance);
+    set_allowance(&owner, &sender, &stv_allowed);
 }
