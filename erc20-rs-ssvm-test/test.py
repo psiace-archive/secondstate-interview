@@ -123,7 +123,7 @@ erc20_tests = [
       b'9993021a' 
          + b'00000000000000000000000000000000DEADBEEF',
       0xDEADBEEF,
-      0xff
+      0xfc
     ),
 # // 0x9993021a do_balance(address) ABI signature
     ("do_balance_0xFACEB00C", 
