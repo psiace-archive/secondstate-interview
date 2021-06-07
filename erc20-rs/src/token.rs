@@ -103,4 +103,14 @@ pub fn main() {
 
         transfer_from(owner, recipient, value);
     }
+
+
+    if function_selector == MINT_SIGNATURE {
+        let adddress = copy_into_address(&input_data[4..24]);
+
+        let value_data: [u8; 8] = copy_into_array(&input_data[24..32]);
+        let value = u64::from_be_bytes(value_data);
+
+        mint(adddress, value);
+    }
 }

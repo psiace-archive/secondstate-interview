@@ -24,3 +24,6 @@ pub const ALLOWANCE_SIGNATURE: [u8; 4] = [221, 98, 237, 62];
 
 // 0x2ea0dfe1 transferFrom(address, address, uint64) ABI signature
 pub const TRANSFER_FROM_SIGNATURE: [u8; 4] = [46, 160, 223, 225];
+
+// 0xaa174ccb mint _mint(address account, uint256 amount)
+pub const MINT_SIGNATURE: [u8; 4] = [170, 23, 76, 203];

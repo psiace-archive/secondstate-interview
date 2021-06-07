@@ -70,6 +70,12 @@ pub fn allowance(owner: Address, spender: Address) {
     ewasm_api::finish_data(&allowance_value.bytes);
 }
 
+pub fn mint(the: Address, value: u64) {
+    let value: [u8; 8] = value.to_be_bytes();
+    let stv_owner_balance = copy_into_storage_value(&value[0..8]);
+    set_balance(&the, &stv_owner_balance);
+}
+
 pub fn transfer_from(owner: Address, recipient: Address, value: u64) {
     let sender = ewasm_api::caller();
     let owner_balance = get_balance(&owner);
